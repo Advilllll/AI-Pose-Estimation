@@ -1,0 +1,92 @@
+import cv2
+import mediapipe as mp
+import time
+import numpy as np
+import sys
+
+#sys.stdout = open('combinedFile3.csv', 'w')
+
+def poseProcess(x, count, framesCaptured):
+    success, img = cap.read()
+    imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    results = pose.process(imgRGB)
+    count += 1
+    if results.pose_landmarks:
+        if count % 2 == 0 and framesCaptured <= 10:
+            framesCaptured += 1
+            mpDraw.draw_landmarks(img, results.pose_landmarks, mpPose.POSE_CONNECTIONS)
+            print(str(x) + " , ", end='')
+            for id, lm in enumerate(results.pose_landmarks.landmark):
+
+                h, w, c = img.shape
+
+                print(results.pose_landmarks.landmark[id].x, ", ", end='')
+                print(results.pose_landmarks.landmark[id].y, ", ", end='')
+                print(results.pose_landmarks.landmark[id].z, ", ", end='')
+                print(results.pose_landmarks.landmark[id].visibility, end='')
+
+                if id != 32:
+                    print(", ", end='')  # <- For making it on a single line
+                else:
+                    if x<8:
+                        print(", Left Arm Up")
+                    elif x<15:
+                        print(", Low Toss")
+                    elif x<22:
+                        print(", No Knee/Elbow Bend")
+                    elif x<30:
+                        print(", Good Serve")
+def calculate_angle(a, b, c):
+    a = np.array(a)  # First
+    b = np.array(b)  # Mid
+    c = np.array(c)  # End
+
+    radians = np.arctan2(c[1] - b[1], c[0] - b[0]) - np.arctan2(a[1] - b[1], a[0] - b[0])
+    angle = np.abs(radians * 180.0 / np.pi)
+
+    if angle > 180.0:
+        angle = 360 - angle
+
+    return angle
+
+
+# MediaPose Positions
+PipePos = ["Nose", "Inner Left Eye", "Left Eye", "Outer Left Eye", "Inner Right Eye", "Right Eye", "Outer Right Eye",
+           "Left Ear", "Right Ear", "Mouth Left", "Mouth Right",  # Face
+           "Left Shoulder", "Right Shoulder", "Left Elbow", "Right Elbow", "Left Wrist", "Right Wrist", "Left Pinky",
+           "Right Pinky", "Left Index", "Right Index", "Left Thumb", "Right Thumb",  # arm
+           "Left Hip", "Right Hip", "Left Knee", "Right Knee", "Left Ankle", "Right Ankle", "Left Heel", "Right Heel",
+           "Left Foot", "Right Foot"]  # leg
+x = 1
+framesCaptured = 0
+print(
+    "VideoNumber, NoseX, NoseY, NoseZ, NoseV, Inner Left EyeX, Inner Left EyeY, Inner Left EyeZ, Inner Left EyeV, Left EyeX, Left EyeY, Left EyeZ, Left EyeV, Outer Left EyeX, Outer Left EyeY, Outer Left EyeZ, Outer Left EyeV, Inner Right EyeX, Inner Right EyeY, Inner Right EyeZ, Inner Right EyeV, Right EyeX, Right EyeY, Right EyeZ, Right EyeV, Outer Right EyeX, Outer Right EyeY, Outer Right EyeZ, Outer Right EyeV, Left EarX, Left EarY, Left EarZ, Left EarV, Right EarX, Right EarY, Right EarZ, Right EarV, Left MouthX, Left MouthY, Left MouthZ, Left MouthV, Right MouthX, Right MouthY, Right MouthZ, Right MouthV, Left ShoulderX, Left ShoulderY, Left ShoulderZ, Left ShoulderV, Right ShoulderX, Right ShoulderY, Right ShoulderZ, Right ShoulderV, Left ElbowX, Left ElbowY, Left ElbowZ, Left ElbowV, Right ElbowX, Right ElbowY, Right ElbowZ, Right ElbowV, Left WristX, Left WristY, Left WristZ, Left WristV, Right WristX, Right WristY, Right WristZ, Right WristV, Left PinkyX, Left PinkyY, Left PinkyZ, Left PinkyV, Right PinkyX, Right PinkyY, Right PinkyZ, Right PinkyV, Left IndexX, Left IndexY, Left IndexZ, Left IndexV, Right IndexX, Right IndexY, Right IndexZ, Right IndexV, Left ThumbX, Left ThumbY, Left ThumbZ, Left ThumbV, Right ThumbX, Right ThumbY, Right ThumbZ, Right ThumbV, Left HipX, Left HipY, Left HipZ, Left HipV, Right HipX, Right HipY, Right HipZ, Right HipV, Left KneeX, Left KneeY, Left KneeZ, Left KneeV, Right KneeX, Right KneeY, Right KneeZ, Right KneeV, Left AnkleX, Left AnkleY, Left AnkleZ, Left AnkleV, Right AnkleX, Right AnkleY, Right AnkleZ, Right AnkleV, Left HeelX, Left HeelY, Left HeelZ, Left HeelV, Right HeelX, Right HeelY, Right HeelZ, Right HeelV, Left ToeX, Left ToeY, Left ToeZ, Left ToeV, Right ToeX, Right ToeY, Right ToeZ, Right ToeV, Label")
+
+mpDraw = mp.solutions.drawing_utils
+mpPose = mp.solutions.pose
+pose = mpPose.Pose()
+
+while True:
+    pTime = 0
+    cap = cv2.VideoCapture('Sorted Pose Videos/' + str(x) + '.mp4')
+
+    try:
+        count = 0
+        while x<30:
+            poseProcess(x, count, framesCaptured)
+            framesCaptured = 0
+            poseProcess(x, count, framesCaptured)
+            framesCaptured = 0
+            poseProcess(x, count, framesCaptured)
+    except cv2.error:
+        if x < 30:
+            x += 1
+            cap = cv2.VideoCapture('Sorted Pose Videos/' + str(x) + '.mp4')
+
+            continue
+        else:
+            break
+    break
+
+#sys.stdout.close()
+
